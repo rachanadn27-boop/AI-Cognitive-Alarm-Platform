@@ -90,13 +90,36 @@ def initial_seed_check():
         if not user2:
             user2 = User(
                 name="Emma Watson", email="emma@cognitivealarm.com",
-                password=auth.get_password_hash("user123"), role="user", provider="LOCAL"
+                password=auth.get_password_hash("user123"), role="user", provider="LOCAL", coach_id=coach_user.id
             )
             db.add(user2)
             db.commit()
             db.refresh(user2)
             db.add(UserProfile(user_id=user2.id, wake_up_time="05:45", streak=14, habit_score=92))
             db.commit()
+
+        # 4. Known OAuth & Registered Users (Permanent Seed for Serverless Resiliency)
+        known_users = [
+            ("Nethractr121", "nethractr121@gmail.com", "GOOGLE"),
+            ("Jrdatharaja", "jrdatharaja@gmail.com", "GOOGLE"),
+            ("Rachanadn27", "rachanadn27@gmail.com", "GOOGLE")
+        ]
+        for k_name, k_email, k_provider in known_users:
+            ku = db.query(User).filter(User.email == k_email).first()
+            if not ku:
+                ku = User(
+                    name=k_name,
+                    email=k_email,
+                    password=auth.get_password_hash("user123"),
+                    role="user",
+                    provider=k_provider,
+                    coach_id=coach_user.id
+                )
+                db.add(ku)
+                db.commit()
+                db.refresh(ku)
+                db.add(UserProfile(user_id=ku.id, streak=0, habit_score=72))
+                db.commit()
 
         print("Auto-seeding default records finished successfully.")
     except Exception as e:
