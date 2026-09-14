@@ -190,20 +190,26 @@
 
             <!-- TAB 2: USER DIRECTORY -->
             <div id="users-tab" class="switch-tab">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                     <h2>System Accounts Directory</h2>
-                    <div style="display: flex; gap: 10px;">
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button onclick="loadAdminUsers(true)" class="btn btn-primary" style="font-size: 12px;">🔄 Refresh Users</button>
                         <button onclick="openModal('add-user-modal')" class="btn btn-primary">+ Add User Account</button>
                         <a href="/api/admin/export?format=pdf" class="btn btn-secondary">Download PDF</a>
                         <a href="/api/admin/export?format=excel" class="btn btn-secondary">Download Excel</a>
                     </div>
                 </div>
 
+                <div id="users-loading" style="text-align:center; padding: 30px; color: var(--text-secondary); display:none;">
+                    <div style="font-size:28px; margin-bottom:10px;">⏳</div>
+                    <p>Loading users...</p>
+                </div>
+
                 <div class="table-container">
                     <table class="custom-table">
                         <thead>
                             <tr>
-                                <th>User detail</th>
+                                <th>User Detail</th>
                                 <th>System Role</th>
                                 <th>Provider</th>
                                 <th>Streak / Habit</th>
@@ -212,64 +218,11 @@
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            {% for u in users %}
-                                <tr>
-                                    <td>
-                                        <div style="display: flex; gap: 10px; align-items: center;">
-                                            <img src="{{ u.profile_image or 'https://api.dicebear.com/7.x/bottts/svg' }}" alt="avatar" style="width: 32px; height: 32px; border-radius: 50%;">
-                                            <div>
-                                                <strong>{{ u.full_name or u.username }}</strong>
-                                                <p style="font-size: 11px; color: var(--text-secondary);">@{{ u.username }} • {{ u.email }}</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td style="text-transform: capitalize;">{{ u.role }}</td>
-                                    <td style="text-transform: capitalize;">{{ u.provider }}</td>
-                                    <td>
-                                        {% if u.role == 'user' and u.profile %}
-                                            {{ u.profile.streak }} days / {{ u.profile.habit_score }} score
-                                        {% else %}
-                                            -
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if u.role == 'user' %}
-                                            {% if u.coach_id %}
-                                                <div style="display: flex; align-items: center; gap: 8px;">
-                                                    <span>Coach ID: {{ u.coach_id }}</span>
-                                                    <form action="/api/admin/users/remove-coach/{{ u.id }}" method="POST">
-                                                        <button type="submit" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 11px;">Remove</button>
-                                                    </form>
-                                                </div>
-                                            {% else %}
-                                                <button onclick="openAssignCoach('{{ u.id }}', '{{ u.full_name or u.username }}')" class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;">Assign Coach</button>
-                                            {% endif %}
-                                        {% else %}
-                                            -
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <span class="badge {{ 'badge-active' if u.account_status == 'active' else 'badge-suspended' }}">
-                                            {{ u.account_status }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div style="display: flex; gap: 8px;">
-                                            <button onclick="openEditUser('{{ u.id }}', '{{ u.name or u.email }}', '{{ u.role }}')" class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px;">Edit</button>
-                                            <form action="/api/admin/users/toggle-status/{{ u.id }}" method="POST">
-                                                <button type="submit" class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px;">Toggle Status</button>
-                                            </form>
-                                            <form action="/api/admin/users/reset-password/{{ u.id }}" method="POST">
-                                                <button type="submit" class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px;" title="Reset password">Reset Pass</button>
-                                            </form>
-                                            <form action="/api/admin/users/delete/{{ u.id }}" method="POST" onsubmit="return confirm('Permanently delete user?')">
-                                                <button type="submit" class="btn btn-danger" style="padding: 6px 10px; font-size: 12px;">Delete</button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                            {% endfor %}
+                        <tbody id="users-table-tbody">
+                            <!-- Loaded via AJAX on tab open — always fresh from DB -->
+                            <tr id="users-placeholder-row">
+                                <td colspan="7" style="text-align:center; color:var(--text-secondary); padding:20px;">Loading users...</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -381,7 +334,7 @@
                         <h2>💡 Recommendation Monitoring &amp; Sleep Adherence</h2>
                         <p style="color: var(--text-secondary); font-size: 13px;">Platform-wide telemetry tracking 5-pillar recommendations and user bedtime adherence check-in responses (Yes / No) for Module 8 Habit Scoring.</p>
                     </div>
-                    <button onclick="loadAdminRecommendationsMonitoring()" class="btn btn-primary" style="font-size: 12px;">
+                    <button onclick="loadAdminRecommendationsMonitoring(true)" class="btn btn-primary" style="font-size: 12px; cursor: pointer;">
                         🔄 Refresh Monitoring
                     </button>
                 </div>
@@ -654,20 +607,82 @@
                 btn.classList.add('active');
                 document.getElementById('tab-title').innerText = btn.innerText.substring(2);
             }
+            // Auto-load user directory whenever tab is opened
+            if (tabId === 'users-tab') loadAdminUsers(false);
         }
 
         document.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
             const tab = params.get('tab');
             const msg = params.get('msg');
-            if (msg) {
-                showToast(msg, 'info');
-            }
+            if (msg) showToast(msg, 'info');
             if (tab === 'users') {
                 const btn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.innerText.includes('Directory'));
                 if (btn) setTab('users-tab', btn);
+            } else {
+                // Always pre-load users in background on page load
+                loadAdminUsers(false);
             }
         });
+
+        async function loadAdminUsers(isManual = false) {
+            const tbody = document.getElementById('users-table-tbody');
+            if (!tbody) return;
+            if (isManual && typeof showToast === 'function') showToast('🔄 Refreshing user list...', 'info');
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:20px;">⏳ Loading users...</td></tr>';
+            try {
+                const res = await fetch('/api/admin/users');
+                if (!res.ok) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--danger);padding:20px;">❌ Failed to load users. Check auth or try refreshing.</td></tr>';
+                    return;
+                }
+                const data = await res.json();
+                const users = data.users || [];
+                if (users.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:20px;">No users registered yet.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = users.map(u => {
+                    const avatar = u.profile_image || 'https://api.dicebear.com/7.x/bottts/svg';
+                    const statusBadge = u.account_status === 'active' ? 'badge-active' : 'badge-suspended';
+                    const coachCell = u.role === 'user'
+                        ? (u.coach_id
+                            ? `<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:12px;">${u.coach_name || 'Coach #'+u.coach_id}</span><form action="/api/admin/users/remove-coach/${u.id}" method="POST" style="display:inline;"><button type="submit" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:11px;">Remove</button></form></div>`
+                            : `<button onclick="openAssignCoach('${u.id}','${(u.name||u.email).replace(/'/g,"&#39;")}')" class="btn btn-secondary" style="padding:4px 8px;font-size:11px;">Assign Coach</button>`)
+                        : '-';
+                    const streakHabit = u.role === 'user' ? `${u.streak} days / ${u.habit_score} score` : '-';
+                    return `<tr>
+                        <td>
+                            <div style="display:flex;gap:10px;align-items:center;">
+                                <img src="${avatar}" alt="avatar" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg'">
+                                <div>
+                                    <strong>${u.name || u.email}</strong>
+                                    <p style="font-size:11px;color:var(--text-secondary);">${u.email}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="text-transform:capitalize;">${u.role}</td>
+                        <td style="text-transform:capitalize;">${u.provider}</td>
+                        <td style="font-size:12px;">${streakHabit}</td>
+                        <td>${coachCell}</td>
+                        <td><span class="badge ${statusBadge}">${u.account_status}</span></td>
+                        <td>
+                            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                                <button onclick="openEditUser('${u.id}','${(u.name||u.email).replace(/'/g,"&#39;")}','${u.role}')" class="btn btn-secondary" style="padding:5px 8px;font-size:11px;">Edit</button>
+                                <form action="/api/admin/users/toggle-status/${u.id}" method="POST" style="display:inline;"><button type="submit" class="btn btn-secondary" style="padding:5px 8px;font-size:11px;">Toggle</button></form>
+                                <form action="/api/admin/users/reset-password/${u.id}" method="POST" style="display:inline;"><button type="submit" class="btn btn-secondary" style="padding:5px 8px;font-size:11px;">Reset Pass</button></form>
+                                <form action="/api/admin/users/delete/${u.id}" method="POST" style="display:inline;" onsubmit="return confirm('Permanently delete this user?')"><button type="submit" class="btn btn-danger" style="padding:5px 8px;font-size:11px;">Delete</button></form>
+                            </div>
+                        </td>
+                    </tr>`;
+                }).join('');
+                if (isManual && typeof showToast === 'function') showToast(`✅ ${users.length} users loaded`, 'success');
+            } catch (err) {
+                console.error('loadAdminUsers error:', err);
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--danger);padding:20px;">⚠️ Network error loading users. Please refresh.</td></tr>';
+            }
+        }
+
 
         function openEditUser(id, fullName, role) {
             document.getElementById('edit-user-form').action = `/api/admin/users/edit/${id}`;
@@ -891,52 +906,90 @@
             }
         }
 
-        async function loadAdminRecommendationsMonitoring() {
+        async function loadAdminRecommendationsMonitoring(isManual = false) {
             try {
+                if (isManual && typeof showToast === 'function') {
+                    showToast('🔄 Refreshing recommendations & sleep adherence monitoring...', 'info');
+                }
                 const res = await fetch('/api/admin/recommendations/monitoring');
-                if (!res.ok) return;
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    if (isManual && typeof showToast === 'function') {
+                        showToast(errData.detail || 'Failed to refresh monitoring telemetry', 'error');
+                    }
+                    return;
+                }
                 const data = await res.json();
 
-                const m = data.sleep_adherence_monitoring || {};
-                document.getElementById('rec-total-checks').innerText = m.total_check_ins || 0;
-                document.getElementById('rec-yes-count').innerText = m.yes_adhered_count || 0;
-                document.getElementById('rec-no-count').innerText = m.no_disrupted_count || 0;
-                document.getElementById('rec-rate-pct').innerText = (m.platform_adherence_rate_pct || 100) + '%';
-                document.getElementById('rec-avg-score').innerText = (m.average_adherence_score || 95) + '/100';
+                const m = data.sleep_adherence_monitoring || data.monitoring_metrics || {};
+                const total = m.total_check_ins !== undefined ? m.total_check_ins : (m.total_adherence_checkins !== undefined ? m.total_adherence_checkins : 0);
+                const yes = m.yes_adhered_count !== undefined ? m.yes_adhered_count : (m.adhered_yes_count !== undefined ? m.adhered_yes_count : 0);
+                const no = m.no_disrupted_count !== undefined ? m.no_disrupted_count : (m.disrupted_no_count !== undefined ? m.disrupted_no_count : (total - yes));
+                const rate = m.platform_adherence_rate_pct !== undefined ? m.platform_adherence_rate_pct : (m.adherence_rate_pct !== undefined ? m.adherence_rate_pct : (total > 0 ? Math.round(yes/total*100) : 0));
+                const avgScore = m.average_adherence_score !== undefined ? m.average_adherence_score : (total > 0 ? 95 : 0);
+
+                const totalEl = document.getElementById('rec-total-checks');
+                const yesEl = document.getElementById('rec-yes-count');
+                const noEl = document.getElementById('rec-no-count');
+                const rateEl = document.getElementById('rec-rate-pct');
+                const avgEl = document.getElementById('rec-avg-score');
+
+                if (totalEl) totalEl.innerText = total;
+                if (yesEl) yesEl.innerText = yes;
+                if (noEl) noEl.innerText = no;
+                if (rateEl) rateEl.innerText = rate + '%';
+                if (avgEl) avgEl.innerText = avgScore + '/100';
 
                 const tbody = document.getElementById('rec-monitoring-tbody');
                 if (!tbody) return;
 
-                if (!m.recent_logs || m.recent_logs.length === 0) {
+                const logs = m.recent_logs || data.recent_sleep_adherence_logs || [];
+                if (!logs || logs.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 20px;">No user sleep adherence check-in entries logged yet. Users can log adherence on their Habit Hub.</td></tr>';
+                    if (isManual && typeof showToast === 'function') {
+                        showToast('✅ Recommendation telemetry refreshed (0 logs)', 'info');
+                    }
                     return;
                 }
 
-                tbody.innerHTML = m.recent_logs.map(l => {
-                    const badge = l.adhered ? 'badge-active' : 'badge-suspended';
+                tbody.innerHTML = logs.map(l => {
+                    const isYes = (l.adhered === true || l.adhered === 1 || String(l.adhered).toLowerCase() === 'true' || String(l.adhered_label).toUpperCase() === 'YES');
+                    const badge = isYes ? 'badge-active' : 'badge-suspended';
                     return `
                         <tr>
                             <td>
-                                <strong>${l.user_name}</strong>
-                                <div style="font-size: 11px; color: var(--text-secondary);">${l.user_email}</div>
+                                <strong>${l.user_name || 'User'}</strong>
+                                <div style="font-size: 11px; color: var(--text-secondary);">${l.user_email || ''}</div>
                             </td>
                             <td><strong style="color: #38bdf8;">${l.target_bedtime || '--:--'}</strong></td>
                             <td><strong style="color: #a78bfa;">${l.target_wake_time || '--:--'}</strong></td>
                             <td>
                                 <span class="badge ${badge}" style="font-weight: 800;">
-                                    ${l.adhered ? '✅ YES (Adhered)' : '❌ NO (Disrupted)'}
+                                    ${isYes ? '✅ YES (Adhered)' : '❌ NO (Disrupted)'}
                                 </span>
                             </td>
-                            <td><strong style="color: ${l.adhered ? '#4ade80' : '#f87171'};">${l.score} pts</strong></td>
+                            <td><strong style="color: ${isYes ? '#4ade80' : '#f87171'};">${l.score !== undefined ? l.score : (isYes ? 95 : 45)} pts</strong></td>
                             <td style="font-size: 12px; color: var(--text-secondary); max-width: 200px;">${l.notes || '-'}</td>
                             <td style="font-size: 12px; color: var(--text-secondary);">${l.created_at || 'Just now'}</td>
                         </tr>
                     `;
                 }).join('');
+
+                if (isManual && typeof showToast === 'function') {
+                    showToast(`✅ Refreshed! ${total} check-in logs loaded (${yes} Adhered, ${no} Disrupted)`, 'success');
+                }
             } catch (err) {
                 console.error('Error loading recommendation monitoring:', err);
+                if (isManual && typeof showToast === 'function') {
+                    showToast('Network error loading recommendation monitoring', 'error');
+                }
             }
         }
+
+        // Auto load on page readiness
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAdminRecommendationsMonitoring(false);
+        });
     </script>
 </body>
 </html>

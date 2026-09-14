@@ -417,6 +417,9 @@
 
         async function updateAppointmentStatus(apptId, newStatus) {
             try {
+                if (typeof showToast === 'function') {
+                    showToast(`Updating appointment to ${newStatus}...`, 'info');
+                }
                 const fd = new FormData();
                 fd.append('appointment_id', apptId);
                 fd.append('status', newStatus);
@@ -432,12 +435,20 @@
                     } else {
                         alert(data.message);
                     }
-                    setTimeout(() => window.location.reload(), 1000);
+                    setTimeout(() => window.location.reload(), 800);
                 } else {
-                    alert(data.detail || 'Failed to update appointment status');
+                    if (typeof showToast === 'function') {
+                        showToast(data.detail || 'Failed to update appointment status', 'error');
+                    } else {
+                        alert(data.detail || 'Failed to update appointment status');
+                    }
                 }
             } catch (err) {
-                alert('Network error updating appointment status');
+                if (typeof showToast === 'function') {
+                    showToast('Network error updating appointment status', 'error');
+                } else {
+                    alert('Network error updating appointment status');
+                }
             }
         }
 

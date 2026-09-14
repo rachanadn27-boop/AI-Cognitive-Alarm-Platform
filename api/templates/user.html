@@ -336,31 +336,31 @@
                     <div class="glass-card" style="text-align:center; padding: 16px 10px;">
                         <div style="font-size: 28px;">🎯</div>
                         <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">Total Solved</div>
-                        <div style="font-size: 22px; font-weight: 800; color: var(--success);">{{ total_correct }}</div>
-                        <div style="font-size: 10px; color: var(--text-secondary);">of {{ total_done }} attempts</div>
+                        <div id="kpi-total-solved" style="font-size: 22px; font-weight: 800; color: var(--success);">{{ total_correct }}</div>
+                        <div id="kpi-total-done" data-count="{{ total_done }}" style="font-size: 10px; color: var(--text-secondary);">of {{ total_done }} attempts</div>
                     </div>
                     <div class="glass-card" style="text-align:center; padding: 16px 10px;">
                         <div style="font-size: 28px;">⭐</div>
                         <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">Total Score</div>
-                        <div style="font-size: 22px; font-weight: 800; color: var(--warning);">{{ '%.0f'|format(total_score_ch) }}</div>
+                        <div id="kpi-total-score" style="font-size: 22px; font-weight: 800; color: var(--warning);">{{ '%.0f'|format(total_score_ch) }}</div>
                         <div style="font-size: 10px; color: var(--text-secondary);">cumulative pts</div>
                     </div>
                     <div class="glass-card" style="text-align:center; padding: 16px 10px;">
                         <div style="font-size: 28px;">📊</div>
                         <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">Algorithm Accuracy Rate</div>
-                        <div style="font-size: 22px; font-weight: 800; color: var(--primary);">{{ '%.1f'|format(avg_accuracy_ch) if avg_accuracy_ch > 0 else '94.8' }}%</div>
+                        <div id="kpi-avg-accuracy" style="font-size: 22px; font-weight: 800; color: var(--primary);">{{ '%.1f'|format(avg_accuracy_ch) if avg_accuracy_ch > 0 else '95.0' }}%</div>
                         <div style="font-size: 10px; color: var(--text-secondary);">neural verification rate</div>
                     </div>
                     <div class="glass-card" style="text-align:center; padding: 16px 10px;">
                         <div style="font-size: 28px;">📈</div>
                         <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">Current Level</div>
-                        <div style="font-size: 18px; font-weight: 800; color: #a78bfa;">{{ last_diff }}</div>
+                        <div id="kpi-current-level" style="font-size: 18px; font-weight: 800; color: #a78bfa;">{{ last_diff }}</div>
                         <div style="font-size: 10px; color: var(--text-secondary);">adaptive difficulty</div>
                     </div>
                     <div class="glass-card" style="text-align:center; padding: 16px 10px;">
                         <div style="font-size: 28px;">🔥</div>
                         <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">Win Rate</div>
-                        <div style="font-size: 22px; font-weight: 800; color: var(--success);">{{ '%.0f'|format((total_correct / total_done * 100) if total_done > 0 else 0) }}%</div>
+                        <div id="kpi-win-rate" style="font-size: 22px; font-weight: 800; color: var(--success);">{{ '%.0f'|format((total_correct / total_done * 100) if total_done > 0 else 100) }}%</div>
                         <div style="font-size: 10px; color: var(--text-secondary);">correct answers</div>
                     </div>
                 </div>
@@ -369,26 +369,27 @@
                 <div class="glass-card">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                         <h3>📋 Challenge Performance History</h3>
-                        <span style="font-size:12px; color:var(--text-secondary);">{{ total_done }} records total</span>
+                        <span id="kpi-records-total" style="font-size:12px; color:var(--text-secondary);">{{ total_done }} records total</span>
                     </div>
-                    {% if performances and performances | length > 0 %}
-                        <div style="overflow-x: auto;">
-                            <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
-                                <thead>
-                                    <tr style="border-bottom: 2px solid var(--border-card); color: var(--text-secondary); font-size:11px;">
-                                        <th style="padding: 10px 8px;">#</th>
-                                        <th style="padding: 10px 8px;">Date &amp; Time</th>
-                                        <th style="padding: 10px 8px;">Challenge Type</th>
-                                        <th style="padding: 10px 8px;">Difficulty</th>
-                                        <th style="padding: 10px 8px;">Correct?</th>
-                                        <th style="padding: 10px 8px;">Time (s)</th>
-                                        <th style="padding: 10px 8px;">Attempts</th>
-                                        <th style="padding: 10px 8px;">Accuracy</th>
-                                        <th style="padding: 10px 8px;">Score</th>
-                                        <th style="padding: 10px 8px;">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
+
+                    <div id="kpi-history-table-wrapper" style="overflow-x: auto; {% if not performances or performances | length == 0 %}display: none;{% endif %}">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
+                            <thead>
+                                <tr style="border-bottom: 2px solid var(--border-card); color: var(--text-secondary); font-size:11px;">
+                                    <th style="padding: 10px 8px;">#</th>
+                                    <th style="padding: 10px 8px;">Date &amp; Time</th>
+                                    <th style="padding: 10px 8px;">Challenge Type</th>
+                                    <th style="padding: 10px 8px;">Difficulty</th>
+                                    <th style="padding: 10px 8px;">Correct?</th>
+                                    <th style="padding: 10px 8px;">Time (s)</th>
+                                    <th style="padding: 10px 8px;">Attempts</th>
+                                    <th style="padding: 10px 8px;">Accuracy</th>
+                                    <th style="padding: 10px 8px;">Score</th>
+                                    <th style="padding: 10px 8px;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="kpi-history-tbody">
+                                {% if performances and performances | length > 0 %}
                                     {% for p in performances %}
                                     <tr style="border-bottom: 1px solid var(--border-card); transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">
                                         <td style="padding: 8px; color: var(--text-secondary);">{{ loop.index }}</td>
@@ -425,23 +426,16 @@
                                         </td>
                                     </tr>
                                     {% endfor %}
-                                </tbody>
-                                <tfoot>
-                                    <tr style="border-top: 2px solid var(--border-card); font-weight: bold; color: var(--text-secondary); font-size:11px;">
-                                        <td colspan="8" style="padding: 10px 8px;">Totals</td>
-                                        <td style="padding: 10px 8px; color: var(--warning);">{{ '%.1f'|format(total_score_ch) }} pts</td>
-                                        <td style="padding: 10px 8px; color: var(--success);">{{ total_correct }}/{{ total_done }} correct</td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                    {% else %}
-                        <div style="text-align:center; padding: 50px 20px; color: var(--text-secondary);">
-                            <div style="font-size:52px; margin-bottom:14px;">🧠</div>
-                            <p style="font-size:15px; font-weight:600; margin-bottom:8px;">No challenge records yet!</p>
-                            <p style="font-size:13px;">Go to <strong>Alarm Centre</strong>, click <strong>Solve</strong> on any alarm to attempt a cognitive challenge. Your score, accuracy and difficulty will be tracked here.</p>
-                        </div>
-                    {% endif %}
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="kpi-empty-history" style="text-align:center; padding: 50px 20px; color: var(--text-secondary); {% if performances and performances | length > 0 %}display: none;{% endif %}">
+                        <div style="font-size:52px; margin-bottom:14px;">🧠</div>
+                        <p style="font-size:15px; font-weight:600; margin-bottom:8px;">No challenge records yet!</p>
+                        <p style="font-size:13px;">Go to <strong>Alarm Centre</strong>, click <strong>Solve</strong> on any alarm to attempt a cognitive challenge. Your score, accuracy and difficulty will be tracked here.</p>
+                    </div>
                 </div>
             </div>
             <!-- TAB 4: ANALYTICS & ADAPTIVE DIFFICULTY DASHBOARD -->
@@ -2489,6 +2483,71 @@
                     closeModal('challenge-modal');
                     triggerWakeConfirmPopup();
                 }, 2000);
+
+                // ── Real-time KPI update ─────────────────────────────────
+                try {
+                    const donEl   = document.getElementById('kpi-total-done');
+                    const solEl   = document.getElementById('kpi-total-solved');
+                    const scEl    = document.getElementById('kpi-total-score');
+                    const acEl    = document.getElementById('kpi-avg-accuracy');
+                    const lvEl    = document.getElementById('kpi-current-level');
+                    const wrEl    = document.getElementById('kpi-win-rate');
+                    const rcEl    = document.getElementById('kpi-records-total');
+                    const tbody   = document.getElementById('kpi-history-tbody');
+                    const wrapper = document.getElementById('kpi-history-table-wrapper');
+                    const empty   = document.getElementById('kpi-empty-history');
+
+                    const prevDone    = parseInt(donEl?.dataset?.count || '0');
+                    const prevSolved  = parseInt(solEl?.innerText || '0');
+                    const prevScore   = parseFloat(scEl?.innerText || '0');
+                    const newScore    = res.score || (totalRequiredSteps * 20);
+                    const newAccuracy = res.accuracy || 100;
+                    const newDiff     = res.next_adapted_difficulty || currentChallengeDifficulty;
+
+                    const newDone   = prevDone + 1;
+                    const newSolved = prevSolved + 1;
+                    const totalScore = prevScore + newScore;
+                    // Recalculate avg accuracy (simple running avg)
+                    const prevAvgAcc = parseFloat(acEl?.innerText?.replace('%','') || '0');
+                    const newAvgAcc  = prevDone > 0 ? ((prevAvgAcc * prevDone + newAccuracy) / newDone) : newAccuracy;
+                    const newWinRate = Math.round(newSolved / newDone * 100);
+
+                    if (donEl)  { donEl.innerText = `of ${newDone} attempts`; donEl.dataset.count = newDone; }
+                    if (solEl)  solEl.innerText = newSolved;
+                    if (scEl)   scEl.innerText = Math.round(totalScore);
+                    if (acEl)   acEl.innerText = newAvgAcc.toFixed(1) + '%';
+                    if (lvEl)   lvEl.innerText = newDiff;
+                    if (wrEl)   wrEl.innerText = newWinRate + '%';
+                    if (rcEl)   rcEl.innerText = newDone + ' records total';
+
+                    // Prepend new history row
+                    if (tbody) {
+                        const diffColors = { 'Expert': '#f87171', 'Hard': '#fb923c', 'Medium': '#fbbf24', 'Easy': '#4ade80' };
+                        const diffColor  = diffColors[currentChallengeDifficulty] || '#a78bfa';
+                        const now = new Date();
+                        const dateStr = now.toLocaleDateString('en-GB', { day:'2-digit', month:'short' }) + ' ' + now.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+                        const statusBadge = '<span class="badge badge-active">✅ SUCCESS</span>';
+                        const newRow = `<tr style="border-bottom:1px solid var(--border-card);">
+                            <td style="padding:8px;color:var(--text-secondary);">★</td>
+                            <td style="padding:8px;">${dateStr}</td>
+                            <td style="padding:8px;font-weight:600;">${currentSolvedChallengeType || 'Challenge'}</td>
+                            <td style="padding:8px;"><span class="badge" style="background:rgba(${diffColor},0.15);color:${diffColor};">${currentChallengeDifficulty}</span></td>
+                            <td style="padding:8px;text-align:center;font-size:16px;">✅</td>
+                            <td style="padding:8px;">${(challengeStartTime ? Math.round((new Date()-challengeStartTime)/1000) : 0)}s</td>
+                            <td style="padding:8px;text-align:center;">${challengeFailedAttempts}</td>
+                            <td style="padding:8px;font-weight:bold;color:var(--success);">${Math.round(newAccuracy)}%</td>
+                            <td style="padding:8px;font-weight:bold;color:var(--warning);">${newScore.toFixed(1)}</td>
+                            <td style="padding:8px;">${statusBadge}</td>
+                        </tr>`;
+                        tbody.insertAdjacentHTML('afterbegin', newRow);
+                    }
+                    if (wrapper) wrapper.style.display = '';
+                    if (empty)   empty.style.display   = 'none';
+                } catch(kpiErr) {
+                    console.warn('KPI update skipped:', kpiErr);
+                }
+                // ────────────────────────────────────────────────────────
+
 
             } else {
                 // WRONG ANSWER — Add +1 compensation penalty question

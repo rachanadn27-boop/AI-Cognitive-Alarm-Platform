@@ -188,6 +188,35 @@ def admin_remove_coach(
     
     return RedirectResponse(url=f"/dashboard/admin?tab=users&msg=Coach+unassigned+from+@{user.username}", status_code=status.HTTP_303_SEE_OTHER)
 
+@router.get("/users")
+def admin_list_users(
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(auth.get_current_user)
+):
+    """JSON endpoint: returns all users so admin User Directory can load via AJAX."""
+    if not current_admin or current_admin.role != 'administrator':
+        raise HTTPException(status_code=403, detail="Forbidden")
+    users = db.query(User).order_by(User.id.desc()).all()
+    coaches = db.query(User).filter(User.role == "coach").all()
+    coach_map = {c.id: (c.name or c.email or f"Coach #{c.id}") for c in coaches}
+    result = []
+    for u in users:
+        profile = u.profile
+        result.append({
+            "id": u.id,
+            "name": u.name or "",
+            "email": u.email or "",
+            "role": u.role or "user",
+            "provider": u.provider or "LOCAL",
+            "account_status": u.account_status or "active",
+            "profile_image": u.profile_image or "",
+            "coach_id": u.coach_id,
+            "coach_name": coach_map.get(u.coach_id, "") if u.coach_id else "",
+            "streak": profile.streak if profile else 0,
+            "habit_score": round(profile.habit_score or 0, 1) if profile else 0,
+        })
+    return {"users": result, "total": len(result)}
+
 @router.post("/broadcast")
 def admin_broadcast(
     title: str = Form(...),

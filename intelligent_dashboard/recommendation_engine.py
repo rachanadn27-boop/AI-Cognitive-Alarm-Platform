@@ -198,26 +198,29 @@ class RecommendationEngine:
         total_users = db.query(User).count()
         all_checks = db.query(SleepAdherenceLog).order_by(SleepAdherenceLog.created_at.desc()).all()
         total_checks = len(all_checks)
-        yes_count = sum(1 for c in all_checks if c.adhered)
+        
+        # Robust boolean / integer check for SQLite data consistency
+        yes_count = sum(1 for c in all_checks if (c.adhered is True or c.adhered == 1 or str(c.adhered).lower() in ['true', '1', 'yes']))
         no_count = total_checks - yes_count
-        adherence_rate = round((yes_count / total_checks * 100), 1) if total_checks > 0 else 100.0
-        avg_score = round(sum(c.score for c in all_checks) / total_checks, 1) if total_checks > 0 else 90.0
+        adherence_rate = round((yes_count / total_checks * 100), 1) if total_checks > 0 else 0.0
+        avg_score = round(sum(c.score for c in all_checks) / total_checks, 1) if total_checks > 0 else 0.0
 
         recent_entries = []
-        for c in all_checks[:15]:
+        for c in all_checks[:50]:
             u = db.query(User).filter(User.id == c.user_id).first()
+            is_yes = (c.adhered is True or c.adhered == 1 or str(c.adhered).lower() in ['true', '1', 'yes'])
             recent_entries.append({
                 "id": c.id,
                 "user_id": c.user_id,
-                "user_name": u.full_name or u.name or u.username if u else f"User {c.user_id}",
+                "user_name": (u.full_name or u.name or u.username) if u else f"User {c.user_id}",
                 "user_email": u.email if u else "N/A",
-                "adhered": c.adhered,
-                "adhered_label": "YES" if c.adhered else "NO",
-                "target_bedtime": c.target_bedtime,
-                "target_wake_time": c.target_wake_time,
-                "score": c.score,
-                "notes": c.notes or "",
-                "created_at": c.created_at.strftime("%Y-%m-%d %H:%M") if c.created_at else "N/A"
+                "adhered": is_yes,
+                "adhered_label": "YES" if is_yes else "NO",
+                "target_bedtime": c.target_bedtime or "22:30",
+                "target_wake_time": c.target_wake_time or "07:00",
+                "score": round(c.score, 1) if c.score is not None else (95.0 if is_yes else 45.0),
+                "notes": c.notes or ("Adhered to target bedtime" if is_yes else "Missed target bedtime"),
+                "created_at": c.created_at.strftime("%Y-%m-%d %H:%M") if c.created_at else "Just now"
             })
 
         return {

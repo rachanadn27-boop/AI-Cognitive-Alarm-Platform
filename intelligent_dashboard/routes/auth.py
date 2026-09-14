@@ -49,7 +49,7 @@ def register_user(
     db.commit()
     
     # Login by setting cookies
-    access_token = auth.create_access_token(db_user.email, db_user.role)
+    access_token = auth.create_access_token(db_user.email, db_user.role, name=db_user.name)
     refresh_token = auth.create_refresh_token(db_user.email, db_user.role)
     
     # Redirect to corresponding dashboard
@@ -149,7 +149,7 @@ def login_user(
     db.add(log)
     db.commit()
     
-    access_token = auth.create_access_token(user.email, user.role)
+    access_token = auth.create_access_token(user.email, user.role, name=user.name)
     refresh_token = auth.create_refresh_token(user.email, user.role)
     
     target = "/dashboard/admin" if user.role == 'administrator' else f"/dashboard/{user.role}"
